@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euo pipefail
+
+# Locate exz-maker
+path="$(which exz-maker 2>/dev/null || true)"
+if [ -z "$path" ]; then
+  path="./exz-maker"
+  if [ ! -x "$path" ]; then
+    echo "Please install exz-maker."
+    exit 1
+  fi
+  chmod a+x "$path"
+fi
+
+# Check input
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 path/to/AppImage"
+  exit 1
+fi
+
+appimage="$1"
+
+# Prepend ./ if input has no / already
+if [[ "$appimage" != */* ]]; then
+  appimage="./$appimage"
+fi
+
+chmod u+x "$appimage"
+
+# Strip extension for output
+basename="${appimage%.*}"
+
+# Extract AppImage
+"$appimage" --appimage-extract
+
+# Create EXZ
+"$path" squashfs-root AppRun "$basename.exz"
+rm -rf squashfs-root

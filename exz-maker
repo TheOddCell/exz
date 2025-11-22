@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+import os
+import sys
+import tarfile
+import tempfile
+from pathlib import Path
+import stat
+import subprocess
+
+if len(sys.argv) != 4:
+    print(f"Usage: {sys.argv[0]} <source_folder> <entry_script_inside_folder> <output_script>")
+    sys.exit(1)
+
+source_folder = Path(sys.argv[1]).resolve()
+entry_script = Path(sys.argv[2])
+output_script = Path(sys.argv[3]).resolve()
+
+if not source_folder.is_dir():
+    print(f"{source_folder} does not exist")
+    sys.exit(1)
+if not (source_folder / entry_script).exists():
+    print(f"Entry script {entry_script} not found in {source_folder}")
+    sys.exit(1)
+
+# Create inner tar.xz
+with tempfile.NamedTemporaryFile(delete=False) as tmp_inner:
+    inner_tar_path = Path(tmp_inner.name)
+
+subprocess.run([
+    "tar", "cJf", str(inner_tar_path), "-C", str(source_folder), "."
+], check=True)
+print(f"Created inner tar.xz: {inner_tar_path}")
+
+# Create outer tar containing the inner tar.xz
+with tempfile.NamedTemporaryFile(delete=False) as tmp_outer:
+    outer_tar_path = Path(tmp_outer.name)
+
+with tarfile.open(outer_tar_path, "w") as tar:
+    tar.add(inner_tar_path, arcname="payload.tar.xz")
+print(f"Created outer tar containing compressed payload: {outer_tar_path}")
+
+# Self-extracting wrapper
+wrapper = f"""#!/bin/bash
+# please edit this file in an zero-safe editor (i.e. not nano)
+TMPDIR=$(mktemp -d /run/user/$UID/app.XXXX)
+echo "Extracting to $TMPDIR..."
+tar -xf "$0" -C "$TMPDIR" 2>/dev/null
+tar -xJf "$TMPDIR/payload.tar.xz" -C "$TMPDIR"
+
+cd "$TMPDIR"
+chmod +x "$TMPDIR/{entry_script}"
+"$TMPDIR/{entry_script}"
+cd /
+rm -rf "$TMPDIR"
+exit 0
+"""
+
+# Pad wrapper to next 512-byte boundary
+wrapper_bytes = wrapper.encode("utf-8")
+padding_needed = (512 - (len(wrapper_bytes) % 512)) % 512
+wrapper_bytes += b"\0" * padding_needed
+
+# Write final self-extracting script
+with open(output_script, "wb") as f_out:
+    f_out.write(wrapper_bytes)
+    with open(outer_tar_path, "rb") as f_outer:
+        f_out.write(f_outer.read())
+
+output_script.chmod(output_script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+# Cleanup
+os.remove(inner_tar_path)
+os.remove(outer_tar_path)
+
+print(f"Nested self-extracting script created: {output_script}")
