@@ -8,6 +8,6 @@ license=('MIT')
 depends=('python3' 'tar' 'xz' 'coreutils' 'bash')
 makedepends=()
 source=('exz-maker' 'appimage-to-exz')
-sha256sums=('SKIP')
+sha256sums=('SKIP' 'SKIP')
 
 package() { install -Dm755 exz-maker "$pkgdir/usr/bin/exz-maker";install -Dm755 appimage-to-exz "$pkgdir/usr/bin/appimage-to-exz"; }
