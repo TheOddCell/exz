@@ -42,13 +42,13 @@ LICENSE  README.md  appimage-to-exz  exz-maker  pypy.AppImage
 testofexz on  main 
 -> ./pypy.AppImage --appimage-extract
 
-testofexz on  main [?] 
+testofexz on  main 
 -> ./exz-maker squashfs-root AppRun pypy.exz
 Created inner tar.xz: /tmp/tmpvdkfqfk7
 Created outer tar containing compressed payload: /tmp/tmpk7kcm2xw
 Nested self-extracting script created: /home/odd/testofexz/pypy.exz
 
-testofexz on  main [?] took 8s 
+testofexz on  main took 8s 
 -> rm -rf squashfs-root 
 
 testofexz on  main 
