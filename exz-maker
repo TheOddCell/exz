@@ -43,7 +43,6 @@ print(f"Created outer tar containing compressed payload: {outer_tar_path}")
 wrapper = f"""#!/bin/bash
 # please edit this file in an zero-safe editor (i.e. not nano)
 TMPDIR=$(mktemp -d /run/user/$UID/app.XXXX)
-echo "Extracting to $TMPDIR..."
 tar -xf "$0" -C "$TMPDIR" 2>/dev/null
 tar -xJf "$TMPDIR/payload.tar.xz" -C "$TMPDIR"
 
