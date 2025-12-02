@@ -45,10 +45,9 @@ wrapper = f"""#!/bin/bash
 TMPDIR=$(mktemp -d /run/user/$UID/app.XXXX)
 tar -xf "$0" -C "$TMPDIR" 2>/dev/null
 tar -xJf "$TMPDIR/payload.tar.xz" -C "$TMPDIR"
-
 cd "$TMPDIR"
 chmod +x "$TMPDIR/{entry_script}"
-"$TMPDIR/{entry_script}"
+"$TMPDIR/{entry_script}" "$@"
 cd /
 rm -rf "$TMPDIR"
 exit 0
