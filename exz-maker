@@ -42,6 +42,7 @@ print(f"Created outer tar containing compressed payload: {outer_tar_path}")
 # Self-extracting wrapper
 wrapper = f"""#!/bin/bash
 # please edit this file in an zero-safe editor (i.e. not nano)
+# to view the ACTUAL CONTENTS, extract this file as a tar archive, then do the tar.xz archive underneath.
 TMPDIR=$(mktemp -d /run/user/$UID/app.XXXX)
 tar -xf "$0" -C "$TMPDIR" 2>/dev/null
 tar -xJf "$TMPDIR/payload.tar.xz" -C "$TMPDIR"
