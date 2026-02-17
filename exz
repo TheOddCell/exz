@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+# exz version 2
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+import os
+import sys
+import tempfile
+from pathlib import Path
+import stat
+import subprocess
+import base64
+import argparse
+
+parser=argparse.ArgumentParser(description="exz - Make an executable tar.xz (version two)")
+parser.add_argument("source", help="Location of source folder")
+parser.add_argument("-e", "--entry", type=str, default="AppRun", help="The entry script")
+parser.add_argument("-l", "--location", type=str, default="thenew.exz", help="The location of the created script")
+args=parser.parse_args()
+
+source_folder = Path(args.source).resolve()
+entry_script = Path(args.entry)
+output_script = Path(args.location).resolve()
+
+if not source_folder.is_dir():
+    print(f"{source_folder} does not exist")
+    sys.exit(1)
+if not (source_folder / entry_script).exists():
+    print(f"Entry script {entry_script} not found in {source_folder}")
+    sys.exit(1)
+
+# Create inner tar.xz
+with tempfile.NamedTemporaryFile(delete=False) as tmp_inner:
+    tar_path = Path(tmp_inner.name)
+
+subprocess.run([
+    "tar", "cJf", str(tar_path), "-C", str(source_folder), "."
+], check=True)
+print(f"Created tar.xz: {tar_path}")
+
+
+# Self-extracting wrapper
+with open(tar_path, "rb") as f: wrapper = f"""#!/bin/bash
+# executable tar.xz extracter version 2
+# this script is MIT licenced.
+# you may view this licence at https://opensource.org/license/mit
+# copyright theoddcell 2026
+TMPDIR=$(mktemp -d /run/user/$UID/app.XXXX)
+# the contents of this echo statement is not affected by the MIT licence, you may want to go into tmpdir to view the licence
+echo "{base64.b64encode(f.read()).decode()}" | base64 -d | tar -xJ -C "$TMPDIR" 2>/dev/null
+chmod +x "$TMPDIR/{entry_script}"
+exec "$TMPDIR/{entry_script}" "$@"
+"""
+
+# Write final self-extracting script
+with open(output_script, "w") as f_out:
+    f_out.write(wrapper)
+
+output_script.chmod(output_script.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+print(f"Nested self-extracting script created: {output_script}")
