@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # Locate exz-maker
-path="$(which exz-maker 2>/dev/null || true)"
+path="$(which exz 2>/dev/null || true)"
 if [ -z "$path" ]; then
-  path="./exz-maker"
+  path="./exz"
   if [ ! -x "$path" ]; then
-    echo "Please install exz-maker."
+    echo "Please install exz."
     exit 1
   fi
   chmod a+x "$path"
@@ -34,5 +34,5 @@ basename="${appimage%.*}"
 "$appimage" --appimage-extract
 
 # Create EXZ
-"$path" squashfs-root AppRun "$basename.exz"
+"$path" squashfs-root -e AppRun -l "$basename.exz"
 rm -rf squashfs-root
